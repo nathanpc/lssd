@@ -1,0 +1,7 @@
+# Objects and other compilation artifacts.
+*.o
+lssd
+
+# Misc.
+.DS_Store
+
