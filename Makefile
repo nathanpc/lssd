@@ -31,7 +31,7 @@ run: $(TARGET)
 	@./$(TARGET)
 
 debug: CFLAGS += -g3 -DDEBUG
-debug: $(TARGET)
+debug: clean $(TARGET)
 	$(GDB) $(TARGET)
 
 clean:
