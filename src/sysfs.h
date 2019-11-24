@@ -17,7 +17,7 @@
 
 bool sysfs_exists();
 bool sysfs_device_info(stdev_t *sd);
-bool sysfs_device_list(stdev_t **devlist);
+bool sysfs_device_list(stdev_container *devlist);
 
 #endif  //_SYSFS_H
 

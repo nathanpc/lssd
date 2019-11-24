@@ -33,7 +33,7 @@ bool sysfs_exists() {
  * @param  devlist Array of block devices to be populated.
  * @return         TRUE if the operation was successful.
  */
-bool sysfs_device_list(stdev_t **devlist) {
+bool sysfs_device_list(stdev_container *devlist) {
 	DIR *dh;
 	struct dirent *dir;
 
@@ -59,9 +59,8 @@ bool sysfs_device_list(stdev_t **devlist) {
 		if (sd.size == 0)
 			continue;
 
-#ifdef DEBUG
-		device_print_info(sd);
-#endif
+		// Add the storage device to the list.
+		device_list_push(devlist, sd);
 	}
 
 	// Clean up.

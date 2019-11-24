@@ -26,8 +26,19 @@ typedef struct {
 	size_t size;
 } stdev_t;
 
+// Storage device dynamic array.
+typedef struct {
+	uint8_t count;
+	stdev_t *list;
+} stdev_container;
 
+// Checking.
 bool device_exists(const char *devpath);
+
+// List operation.
+void device_list_push(stdev_container *list, stdev_t sd);
+
+// Debugging.
 void device_print_info(const stdev_t sd);
 
 #endif  //_DEVICE_H

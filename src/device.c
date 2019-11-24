@@ -10,6 +10,17 @@
 #include <unistd.h>
 
 /**
+ * Pushes a storage device into a container.
+ *
+ * @param list Device container.
+ * @param sd   Storage device.
+ */
+void device_list_push(stdev_container *list, stdev_t sd) {
+	list->list = realloc(list->list, sizeof(stdev_t) * (list->count + 1));
+	list->list[list->count++] = sd;
+}
+
+/**
  * Checks if a partition exists.
  *
  * @param  devpath Path to the device partition.
