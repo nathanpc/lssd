@@ -7,8 +7,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-
-#include "procfs.h"
+#include "sysfs.h"
 
 /**
  * Application's main entry point.
@@ -19,9 +18,9 @@
  */
 int main(int argc, char **argv) {
 	// Check with device discovery system we are going to use.
-	if (procfs_exists()) {
+	if (sysfs_exists()) {
 		// Use procfs.
-		if (!procfs_partition_list(NULL))
+		if (!sysfs_device_list(NULL))
 			return EXIT_FAILURE;
 	} else {
 		fprintf(stderr, "Cannot determine a device discovery system to use.\n");
