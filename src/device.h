@@ -11,11 +11,24 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <limits.h>
 
-#define MAX_PATH               4000
+// Constants.
 #define PARTITION_NAME_MAX_LEN 128
+#define DEVICE_PATH_MAX_LEN    PARTITION_NAME_MAX_LEN * 2
+
+// Storage device structure.
+typedef struct {
+	char   name[PARTITION_NAME_MAX_LEN];
+	char   path[DEVICE_PATH_MAX_LEN];
+	size_t sectors;
+	size_t sector_size;
+	size_t size;
+} stdev_t;
+
 
 bool device_exists(const char *devpath);
+void device_print_info(const stdev_t sd);
 
 #endif  //_DEVICE_H
 
