@@ -1,6 +1,6 @@
 PROJECT = lssd
 
-CC = g++
+CC = gcc
 RM = rm -f
 GDB = gdb
 MKDIR = mkdir -p
