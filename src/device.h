@@ -24,6 +24,7 @@ typedef struct {
 	size_t sectors;
 	size_t sector_size;
 	size_t size;
+	bool   ro;
 } stdev_t;
 
 // Storage device dynamic array.

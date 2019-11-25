@@ -17,6 +17,7 @@
 bool ignore_dir_entry(const struct dirent *dir);
 bool freadnum(const char *fpath, size_t *num);
 bool get_size(stdev_t *sd);
+bool get_permission(stdev_t *sd);
 
 /**
  * Checks if the sysfs block device folders exists.
@@ -84,6 +85,10 @@ bool sysfs_device_info(stdev_t *sd) {
 	if (!get_size(sd))
 		return false;
 
+	// Get device permission.
+	if (!get_permission(sd))
+		return false;
+
 	return true;
 }
 
@@ -113,6 +118,29 @@ bool get_size(stdev_t *sd) {
 
 	// Calculate the size.
 	sd->size = sd->sectors * sd->sector_size;
+	return true;
+}
+
+/**
+ * Gets the permission of a block device. (Read/Write)
+ *
+ * @param  sd Storage device structure to be populated with information.
+ * @return    TRUE if the parsing was successful.
+ */
+bool get_permission(stdev_t *sd) {
+	char attrpath[PATH_MAX];
+	size_t perm;
+
+	// Get the permission.
+	snprintf(attrpath, PATH_MAX, "%s/force_ro", sd->path);
+	if (!freadnum(attrpath, &perm)) {
+		fprintf(stderr, "Failed to read %s permissions.\n",
+				sd->path);
+		return false;
+	}
+
+	// Convert to boolean and return.
+	sd->ro = (perm & true);
 	return true;
 }
 

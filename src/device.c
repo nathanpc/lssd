@@ -40,6 +40,7 @@ void device_print_info(const stdev_t sd) {
 	printf("Sectors:\t%zu\n", sd.sectors);
 	printf("Sector Size:\t%zu bytes/sector\n", sd.sector_size);
 	printf("Size:\t\t%zu bytes\n", sd.size);
+	printf("Permission:\t%s\n", sd.ro ? "Read Only" : "Read and Write");
 	printf("\n");
 }
 
