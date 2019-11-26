@@ -132,7 +132,7 @@ bool get_permission(stdev_t *sd) {
 	size_t perm;
 
 	// Get the permission.
-	snprintf(attrpath, PATH_MAX, "%s/force_ro", sd->path);
+	snprintf(attrpath, PATH_MAX, "%s/ro", sd->path);
 	if (!freadnum(attrpath, &perm)) {
 		fprintf(stderr, "Failed to read %s permissions.\n",
 				sd->path);
