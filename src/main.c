@@ -7,7 +7,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include "linux/linux.h"
+#include "linux.h"
 
 // Storage device container.
 stdev_container stdevs;

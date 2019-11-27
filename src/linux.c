@@ -1,23 +1,51 @@
 /**
- * sysfs.c
- * Parses device information from a sysfs-based system.
+ * linux.h
+ * Deals with the Linux devices.
  *
  * @author Nathan Campos <hi@nathancampos.me>
  */
 
-#include "sysfs.h"
+#include "linux.h"
 #include <stdio.h>
 #include <dirent.h>
 #include <unistd.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <blkid/blkid.h>
+
+#define SYSFS_PARTITIONS_PATH "/sys/block/"
 
 // Private methods.
 bool ignore_dir_entry(const struct dirent *dir);
 bool freadnum(const char *fpath, size_t *num);
 bool get_size(stdev_t *sd);
 bool get_permission(stdev_t *sd);
+bool sysfs_exists();
+bool sysfs_device_info(stdev_t *sd);
+bool sysfs_device_list(stdev_container *devlist);
+
+
+/**
+ * Populates a storage device container.
+ *
+ * @param  container Storage device structure container.
+ * @return           TRUE if everything went fine.
+ */
+bool linux_populate_devices(stdev_container *container) {
+	// Check with device discovery system we are going to use.
+	if (sysfs_exists()) {
+		// Use procfs.
+		if (!sysfs_device_list(container)) {
+			return false;
+		}
+	} else {
+		fprintf(stderr, "Cannot determine a device discovery system to use.\n");
+		return false;
+	}
+
+	return true;
+}
 
 /**
  * Checks if the sysfs block device folders exists.
