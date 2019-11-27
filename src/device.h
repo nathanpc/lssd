@@ -17,14 +17,25 @@
 #define PARTITION_NAME_MAX_LEN 128
 #define DEVICE_PATH_MAX_LEN    PARTITION_NAME_MAX_LEN * 2
 
+// Device partition structure.
+typedef struct {
+	int         num;
+	const char *uuid;
+	const char *label;
+	const char *type;
+	size_t      size;
+} partition_t;
+
 // Storage device structure.
 typedef struct {
-	char   name[PARTITION_NAME_MAX_LEN];
-	char   path[DEVICE_PATH_MAX_LEN];
-	size_t sectors;
-	size_t sector_size;
-	size_t size;
-	bool   ro;
+	char         name[PARTITION_NAME_MAX_LEN];
+	char         path[DEVICE_PATH_MAX_LEN];
+	size_t       sectors;
+	size_t       sector_size;
+	size_t       size;
+	bool         ro;
+	uint8_t      num_partitions;
+	partition_t *partitions;
 } stdev_t;
 
 // Storage device dynamic array.

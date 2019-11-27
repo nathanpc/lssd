@@ -24,6 +24,7 @@ bool get_permission(stdev_t *sd);
 bool sysfs_exists();
 bool sysfs_device_info(stdev_t *sd);
 bool sysfs_device_list(stdev_container *devlist);
+bool blkid_info(stdev_t *sd);
 
 
 /**
@@ -35,15 +36,54 @@ bool sysfs_device_list(stdev_container *devlist);
 bool linux_populate_devices(stdev_container *container) {
 	// Check with device discovery system we are going to use.
 	if (sysfs_exists()) {
-		// Use procfs.
-		if (!sysfs_device_list(container)) {
+		// Use sysfs.
+		if (!sysfs_device_list(container))
 			return false;
-		}
 	} else {
 		fprintf(stderr, "Cannot determine a device discovery system to use.\n");
 		return false;
 	}
 
+	// Use blkid to get more information for our devices.
+	for (int i = 0; i < container->count; i++) {
+		if (!blkid_info(&container->list[i]))
+			return false;
+	}
+
+	return true;
+}
+
+/**
+ * Gets a device information using blkid.
+ *
+ * @param  sd Storage device structure.
+ * @return    TRUE if the probing went fine.
+ */
+bool blkid_info(stdev_t *sd) {
+	char devpath[DEVICE_PATH_MAX_LEN];
+	snprintf(devpath, DEVICE_PATH_MAX_LEN, "/dev/%s", sd->name);
+
+	// Create a blkid probe.
+	blkid_probe pr = blkid_new_probe_from_filename(devpath);
+	if (!pr) {
+		fprintf(stderr, "Failed to create a blkid probe for %s.\n", devpath);
+		return false;
+	}
+
+	// Get partitions.
+	blkid_partlist ls = blkid_probe_get_partitions(pr);
+	sd->num_partitions = blkid_partlist_numof_partitions(ls);
+	sd->partitions = malloc(sizeof(partition_t) * sd->num_partitions);
+	for (int i = 0; i < sd->num_partitions; i++) {
+		blkid_partition part = blkid_partlist_get_partition(ls, i);
+		sd->partitions[i].num = blkid_partition_get_partno(part);
+		sd->partitions[i].uuid = "";
+		sd->partitions[i].label = "";
+		sd->partitions[i].size = blkid_partition_get_size(part);
+		sd->partitions[i].type = blkid_partition_get_type_string(part);
+	}
+
+	blkid_free_probe(pr);
 	return true;
 }
 
