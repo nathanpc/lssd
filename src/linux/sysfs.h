@@ -11,7 +11,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include "device.h"
+#include "../device.h"
 
 #define SYSFS_PARTITIONS_PATH "/sys/block/"
 
