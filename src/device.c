@@ -53,7 +53,12 @@ void device_print_info(const stdev_t sd) {
 	printf("Sector Size:\t%zu bytes/sector\n", sd.sector_size);
 	printf("Size:\t\t%zu bytes\n", sd.size);
 	printf("Permission:\t%s\n", sd.ro ? "Read Only" : "Read and Write");
-	printf("Partitions (%d):\n", sd.partitions.count);
+
+	if (sd.partitions.count > 0) {
+		printf("Partitions (%d):\n", sd.partitions.count);
+	} else {
+		printf("No partitions available!\n");
+	}
 
 	for (int i = 0; i < sd.partitions.count; i++) {
 		printf(" %d\t%s\n", i, sd.partitions.list[i].name);

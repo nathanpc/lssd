@@ -34,12 +34,12 @@ typedef struct {
 
 // Storage device structure.
 typedef struct {
-	char         name[PARTITION_NAME_MAX_LEN];
-	char         path[DEVICE_PATH_MAX_LEN];
-	size_t       sectors;
-	size_t       sector_size;
-	size_t       size;
-	bool         ro;
+	char   name[PARTITION_NAME_MAX_LEN];
+	char   path[DEVICE_PATH_MAX_LEN];
+	size_t sectors;
+	size_t sector_size;
+	size_t size;
+	bool   ro;
 	partition_container partitions;
 } stdev_t;
 
