@@ -14,15 +14,16 @@
 #include <sys/stat.h>
 #include <blkid/blkid.h>
 
-#define SYSFS_PARTITIONS_PATH "/sys/block/"
+#define SYSFS_BLOCKDEVS_PATH "/sys/block/"
 
 // Private methods.
 bool ignore_dir_entry(const struct dirent *dir);
 bool freadnum(const char *fpath, size_t *num);
 bool get_size(stdev_t *sd);
 bool get_permission(stdev_t *sd);
+bool get_partitions(stdev_t *sd, partition_container *parts);
 bool sysfs_exists();
-bool sysfs_device_info(stdev_t *sd);
+bool sysfs_device_info(stdev_t *sd, partition_container *parts);
 bool sysfs_device_list(stdev_container *devlist);
 bool blkid_info(stdev_t *sd);
 
@@ -34,6 +35,9 @@ bool blkid_info(stdev_t *sd);
  * @return           TRUE if everything went fine.
  */
 bool linux_populate_devices(stdev_container *container) {
+	// Initialize the container.
+	container->count = 0;
+
 	// Check with device discovery system we are going to use.
 	if (sysfs_exists()) {
 		// Use sysfs.
@@ -45,10 +49,10 @@ bool linux_populate_devices(stdev_container *container) {
 	}
 
 	// Use blkid to get more information for our devices.
-	for (int i = 0; i < container->count; i++) {
+	/*for (int i = 0; i < container->count; i++) {
 		if (!blkid_info(&container->list[i]))
 			return false;
-	}
+	}*/
 
 	return true;
 }
@@ -60,30 +64,35 @@ bool linux_populate_devices(stdev_container *container) {
  * @return    TRUE if the probing went fine.
  */
 bool blkid_info(stdev_t *sd) {
-	char devpath[DEVICE_PATH_MAX_LEN];
-	snprintf(devpath, DEVICE_PATH_MAX_LEN, "/dev/%s", sd->name);
+	char partpath[DEVICE_PATH_MAX_LEN];
 
-	// Create a blkid probe.
-	blkid_probe pr = blkid_new_probe_from_filename(devpath);
-	if (!pr) {
-		fprintf(stderr, "Failed to create a blkid probe for %s.\n", devpath);
-		return false;
+	// Get partitions information.
+	for (int i = 0; i < sd->partitions.count; i++) {
+		// Get partition location.
+		snprintf(partpath, DEVICE_PATH_MAX_LEN, "/dev/%s",
+				sd->partitions.list[i].name);
+
+		// Create a partition probe.
+		blkid_probe pr = blkid_new_probe_from_filename(partpath);
+		if (!pr) {
+			fprintf(stderr, "Failed to create a blkid probe for %s.\n",
+					partpath);
+			return false;
+		}
+
+		// Probe partition information.
+		blkid_do_probe(pr);
+		blkid_probe_lookup_value(pr, "UUID", &sd->partitions.list[i].uuid,
+				NULL);
+		blkid_probe_lookup_value(pr, "LABEL", &sd->partitions.list[i].label,
+				NULL);
+		blkid_probe_lookup_value(pr, "TYPE", &sd->partitions.list[i].type,
+				NULL);
+		
+		// Clean up.
+		blkid_free_probe(pr);
 	}
 
-	// Get partitions.
-	blkid_partlist ls = blkid_probe_get_partitions(pr);
-	sd->num_partitions = blkid_partlist_numof_partitions(ls);
-	sd->partitions = malloc(sizeof(partition_t) * sd->num_partitions);
-	for (int i = 0; i < sd->num_partitions; i++) {
-		blkid_partition part = blkid_partlist_get_partition(ls, i);
-		sd->partitions[i].num = blkid_partition_get_partno(part);
-		sd->partitions[i].uuid = "";
-		sd->partitions[i].label = "";
-		sd->partitions[i].size = blkid_partition_get_size(part);
-		sd->partitions[i].type = blkid_partition_get_type_string(part);
-	}
-
-	blkid_free_probe(pr);
 	return true;
 }
 
@@ -93,7 +102,7 @@ bool blkid_info(stdev_t *sd) {
  * @return TRUE if there are block device folders.
  */
 bool sysfs_exists() {
-	return access(SYSFS_PARTITIONS_PATH, F_OK) != -1;
+	return access(SYSFS_BLOCKDEVS_PATH, F_OK) != -1;
 }
 
 /**
@@ -107,10 +116,10 @@ bool sysfs_device_list(stdev_container *devlist) {
 	struct dirent *dir;
 
 	// Open the block device folder.
-	dh = opendir(SYSFS_PARTITIONS_PATH);
+	dh = opendir(SYSFS_BLOCKDEVS_PATH);
 	if (dh == NULL) {
-		fprintf(stderr, "Couldn't open %s to list partitions.\n",
-				SYSFS_PARTITIONS_PATH);
+		fprintf(stderr, "Couldn't open %s to list block devices.\n",
+				SYSFS_BLOCKDEVS_PATH);
 		return false;
 	}
 
@@ -123,13 +132,20 @@ bool sysfs_device_list(stdev_container *devlist) {
 
 		// Get device information.
 		stdev_t sd;
+		sd.partitions.count = 0;
+		//partition_container *parts = malloc(sizeof(partition_container));
+		//parts->count = 0;
+		sd.partitions.list = malloc(sizeof(partition_t));
 		strncpy(sd.name, dir->d_name, PARTITION_NAME_MAX_LEN);
-		sysfs_device_info(&sd);
+		sysfs_device_info(&sd, &sd.partitions);
 		if (sd.size == 0)
 			continue;
 
 		// Add the storage device to the list.
 		device_list_push(devlist, sd);
+		//sd.partitions = parts;
+		//printf("%d - ", parts->count);
+		printf("%d\n", sd.partitions.count);
 	}
 
 	// Clean up.
@@ -141,12 +157,13 @@ bool sysfs_device_list(stdev_container *devlist) {
 /**
  * Gets information about a given block device.
  *
- * @param  sd      Storage device structure to be populated with information.
- * @return         TRUE if the parsing was successful.
+ * @param  sd    Storage device structure to be populated with information.
+ * @param  parts Partitions container.
+ * @return       TRUE if the parsing was successful.
  */
-bool sysfs_device_info(stdev_t *sd) {
+bool sysfs_device_info(stdev_t *sd, partition_container *parts) {
 	// Build device path.
-	strcpy(sd->path, SYSFS_PARTITIONS_PATH);
+	strcpy(sd->path, SYSFS_BLOCKDEVS_PATH);
 	strcat(sd->path, sd->name);
 
 	// Get device size.
@@ -155,6 +172,10 @@ bool sysfs_device_info(stdev_t *sd) {
 
 	// Get device permission.
 	if (!get_permission(sd))
+		return false;
+
+	// Get device partitions.
+	if (!get_partitions(sd, parts))
 		return false;
 
 	return true;
@@ -176,7 +197,7 @@ bool get_size(stdev_t *sd) {
 				sd->path);
 		return false;
 	}
-	
+
 	// Get the number of bytes per sector.
 	snprintf(attrpath, PATH_MAX, "%s/queue/hw_sector_size", sd->path);
 	if (!freadnum(attrpath, &sd->sector_size)) {
@@ -209,6 +230,45 @@ bool get_permission(stdev_t *sd) {
 
 	// Convert to boolean and return.
 	sd->ro = (perm & true);
+	return true;
+}
+
+/**
+ * Gets the partitions from a block device. Just populates the number of
+ * partitions and their names. For more information on each partition check
+ * `blkid_info`.
+ *
+ * @param  sd    Storage device structure to be populated with information.
+ * @param  parts Partitions container.
+ * @return       TRUE if the operation was successful.
+ */
+bool get_partitions(stdev_t *sd, partition_container *parts) {
+	DIR *dh;
+	struct dirent *dir;
+
+	// Open the block device folder.
+	dh = opendir(sd->path);
+	if (dh == NULL) {
+		fprintf(stderr, "Couldn't open %s to list partitions.\n", sd->path);
+		return false;
+	}
+
+	// Get the directory listing.
+	parts->count = 0;
+	while ((dir = readdir(dh)) != NULL) {
+		// Filter out anything that isn't a partition device.
+		if (strncmp(dir->d_name, sd->name, strlen(sd->name)) != 0)
+			continue;
+
+		printf("%d %s\n", parts->count, dir->d_name);
+
+		// Add the partition to the list.
+		device_partition_push(parts, dir->d_name);
+	}
+
+	// Clean up.
+	closedir(dh);
+	dh = NULL;
 	return true;
 }
 

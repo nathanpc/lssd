@@ -8,6 +8,7 @@
 #include "device.h"
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
 
 /**
  * Pushes a storage device into a container.
@@ -18,6 +19,17 @@
 void device_list_push(stdev_container *list, stdev_t sd) {
 	list->list = realloc(list->list, sizeof(stdev_t) * (list->count + 1));
 	list->list[list->count++] = sd;
+}
+
+/**
+ * Pushes a partition into a storage device.
+ *
+ * @param parts Partition container.
+ * @param name  Partition name.
+ */
+void device_partition_push(partition_container *parts, const char *name) {
+	parts->list = realloc(parts->list, sizeof(partition_t) * (parts->count + 1));
+	strncpy(parts->list[parts->count++].name, name, PARTITION_NAME_MAX_LEN);
 }
 
 /**
@@ -41,6 +53,12 @@ void device_print_info(const stdev_t sd) {
 	printf("Sector Size:\t%zu bytes/sector\n", sd.sector_size);
 	printf("Size:\t\t%zu bytes\n", sd.size);
 	printf("Permission:\t%s\n", sd.ro ? "Read Only" : "Read and Write");
+	printf("Partitions (%d):\n", sd.partitions.count);
+
+	for (int i = 0; i < sd.partitions.count; i++) {
+		printf(" %d\t%s\n", i, sd.partitions.list[i].name);
+	}
+
 	printf("\n");
 }
 
