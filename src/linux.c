@@ -19,13 +19,15 @@
 // Private methods.
 bool ignore_dir_entry(const struct dirent *dir);
 bool freadnum(const char *fpath, size_t *num);
-bool get_size(stdev_t *sd);
-bool get_permission(stdev_t *sd);
+bool get_device_size(stdev_t *sd);
+bool get_device_permission(stdev_t *sd);
 bool get_partitions(stdev_t *sd);
 bool sysfs_exists();
 bool sysfs_device_info(stdev_t *sd);
-bool sysfs_device_list(stdev_container *devlist);
+bool get_partitions_size(stdev_t *sd);
+bool get_partitions_permission(stdev_t *sd);
 bool blkid_info(stdev_t *sd);
+bool sysfs_device_list(stdev_container *devlist);
 
 
 /**
@@ -50,45 +52,6 @@ bool linux_populate_devices(stdev_container *container) {
 		if (!blkid_info(&container->list[i]))
 			return false;
 	}*/
-
-	return true;
-}
-
-/**
- * Gets a device information using blkid.
- *
- * @param  sd Storage device structure.
- * @return    TRUE if the probing went fine.
- */
-bool blkid_info(stdev_t *sd) {
-	char partpath[DEVICE_PATH_MAX_LEN];
-
-	// Get partitions information.
-	for (int i = 0; i < sd->partitions.count; i++) {
-		// Get partition location.
-		snprintf(partpath, DEVICE_PATH_MAX_LEN, "/dev/%s",
-				sd->partitions.list[i].name);
-
-		// Create a partition probe.
-		blkid_probe pr = blkid_new_probe_from_filename(partpath);
-		if (!pr) {
-			fprintf(stderr, "Failed to create a blkid probe for %s.\n",
-					partpath);
-			return false;
-		}
-
-		// Probe partition information.
-		blkid_do_probe(pr);
-		blkid_probe_lookup_value(pr, "UUID", &sd->partitions.list[i].uuid,
-				NULL);
-		blkid_probe_lookup_value(pr, "LABEL", &sd->partitions.list[i].label,
-				NULL);
-		blkid_probe_lookup_value(pr, "TYPE", &sd->partitions.list[i].type,
-				NULL);
-		
-		// Clean up.
-		blkid_free_probe(pr);
-	}
 
 	return true;
 }
@@ -130,6 +93,11 @@ bool sysfs_device_list(stdev_container *devlist) {
 			continue;
 		}
 
+		// Filter out the special "boot" devices.
+		if (strstr(dir->d_name, "boot") != NULL) {
+			continue;
+		}
+
 		// Get device information.
 		stdev_t sd;
 		strncpy(sd.name, dir->d_name, PARTITION_NAME_MAX_LEN);
@@ -137,9 +105,12 @@ bool sysfs_device_list(stdev_container *devlist) {
 		if (sd.size == 0)
 			continue;
 		
-		// Get partitions.
+		// Get partitions and information on them.
 		sd.partitions.list = malloc(sizeof(partition_t));
 		get_partitions(&sd);
+		get_partitions_size(&sd);
+		get_partitions_permission(&sd);
+		blkid_info(&sd);
 
 		// Add the storage device to the list.
 		device_list_push(devlist, sd);
@@ -163,11 +134,11 @@ bool sysfs_device_info(stdev_t *sd) {
 	strcat(sd->path, sd->name);
 
 	// Get device size.
-	if (!get_size(sd))
+	if (!get_device_size(sd))
 		return false;
 
 	// Get device permission.
-	if (!get_permission(sd))
+	if (!get_device_permission(sd))
 		return false;
 
 	return true;
@@ -179,7 +150,7 @@ bool sysfs_device_info(stdev_t *sd) {
  * @param  sd Storage device structure to be populated with information.
  * @return    TRUE if the parsing was successful.
  */
-bool get_size(stdev_t *sd) {
+bool get_device_size(stdev_t *sd) {
 	char attrpath[PATH_MAX];
 
 	// Get the number of sectors.
@@ -208,7 +179,7 @@ bool get_size(stdev_t *sd) {
  * @param  sd Storage device structure to be populated with information.
  * @return    TRUE if the parsing was successful.
  */
-bool get_permission(stdev_t *sd) {
+bool get_device_permission(stdev_t *sd) {
 	char attrpath[PATH_MAX];
 	size_t perm;
 
@@ -251,6 +222,11 @@ bool get_partitions(stdev_t *sd) {
 		if (strncmp(dir->d_name, sd->name, strlen(sd->name)) != 0)
 			continue;
 
+		// Filter out the special "boot" partitions.
+		if (strstr(dir->d_name, "boot") != NULL) {
+			continue;
+		}
+
 		// Add the partition to the list.
 		device_partition_push(&sd->partitions, dir->d_name);
 	}
@@ -258,6 +234,107 @@ bool get_partitions(stdev_t *sd) {
 	// Clean up.
 	closedir(dh);
 	dh = NULL;
+	return true;
+}
+
+/**
+ * Gets the size of every partition in a block device in bytes.
+ *
+ * @param  sd Storage device structure to be populated with information.
+ * @return    TRUE if the parsing was successful.
+ */
+bool get_partitions_size(stdev_t *sd) {
+	char attrpath[PATH_MAX];
+
+	for (uint8_t i = 0; i < sd->partitions.count; i++) {
+		// Get the number of bytes per sector.
+		snprintf(attrpath, PATH_MAX, "%s/%s/size", sd->path,
+				sd->partitions.list[i].name);
+		printf("%s\n", attrpath);
+		if (!freadnum(attrpath, &sd->partitions.list[i].sectors)) {
+			fprintf(stderr, "Failed to read the sector size for %s.\n",
+					sd->partitions.list[i].name);
+			return false;
+		}
+		
+		// Calculate the size.
+		sd->partitions.list[i].size = sd->partitions.list[i].sectors * sd->sector_size;
+	}
+
+	return true;
+}
+
+/**
+ * Gets the permission of every partition in a block device. (Read/Write)
+ *
+ * @param  sd Storage device structure to be populated with information.
+ * @return    TRUE if the parsing was successful.
+ */
+bool get_partitions_permission(stdev_t *sd) {
+	char attrpath[PATH_MAX];
+	size_t perm;
+
+	for (uint8_t i = 0; i < sd->partitions.count; i++) {
+		// Get the permission.
+		snprintf(attrpath, PATH_MAX, "%s/%s/ro", sd->path,
+				sd->partitions.list[i].name);
+		if (!freadnum(attrpath, &perm)) {
+			fprintf(stderr, "Failed to read %s permissions.\n",
+					sd->partitions.list[i].name);
+			return false;
+		}
+
+		sd->partitions.list[i].ro = (perm & true);
+	}
+
+	return true;
+}
+
+/**
+ * Gets a device information using blkid.
+ *
+ * @param  sd Storage device structure.
+ * @return    TRUE if the probing went fine.
+ */
+bool blkid_info(stdev_t *sd) {
+	char partpath[DEVICE_PATH_MAX_LEN];
+	const char *uuid;
+	const char *label;
+	const char *type;
+
+	// Get partitions information.
+	for (int i = 0; i < sd->partitions.count; i++) {
+		// Get partition location.
+		snprintf(partpath, DEVICE_PATH_MAX_LEN, "/dev/%s",
+				sd->partitions.list[i].name);
+
+		// Create a partition probe.
+		blkid_probe pr = blkid_new_probe_from_filename(partpath);
+		if (!pr) {
+			fprintf(stderr, "Failed to create a blkid probe for %s. Run the "
+					"program again as root to get more information on this "
+					"partition..\n", partpath);
+			return false;
+		}
+
+		// Initialize the parameter strings.
+		sd->partitions.list[i].uuid[0] = '\0';
+		sd->partitions.list[i].label[0] = '\0';
+		sd->partitions.list[i].type[0] = '\0';
+
+		// Probe partition information.
+		blkid_do_probe(pr);
+		if (!blkid_probe_lookup_value(pr, "UUID", &uuid, NULL))
+			strncpy(sd->partitions.list[i].uuid, uuid, PARTITION_NAME_MAX_LEN);
+		if (!blkid_probe_lookup_value(pr, "LABEL", &label, NULL))
+			strncpy(sd->partitions.list[i].label, label, PARTITION_NAME_MAX_LEN);
+		if (!blkid_probe_lookup_value(pr, "TYPE", &type, NULL))
+			strncpy(sd->partitions.list[i].type, type, PARTITION_TYPE_MAX_LEN);
+		
+		// Clean up.
+		blkid_free_probe(pr);
+	}
+
 	return true;
 }
 
