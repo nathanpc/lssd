@@ -250,7 +250,7 @@ bool get_partitions_size(stdev_t *sd) {
 		// Get the number of bytes per sector.
 		snprintf(attrpath, PATH_MAX, "%s/%s/size", sd->path,
 				sd->partitions.list[i].name);
-		printf("%s\n", attrpath);
+		
 		if (!freadnum(attrpath, &sd->partitions.list[i].sectors)) {
 			fprintf(stderr, "Failed to read the sector size for %s.\n",
 					sd->partitions.list[i].name);
@@ -278,6 +278,7 @@ bool get_partitions_permission(stdev_t *sd) {
 		// Get the permission.
 		snprintf(attrpath, PATH_MAX, "%s/%s/ro", sd->path,
 				sd->partitions.list[i].name);
+		
 		if (!freadnum(attrpath, &perm)) {
 			fprintf(stderr, "Failed to read %s permissions.\n",
 					sd->partitions.list[i].name);
@@ -308,19 +309,17 @@ bool blkid_info(stdev_t *sd) {
 		snprintf(partpath, DEVICE_PATH_MAX_LEN, "/dev/%s",
 				sd->partitions.list[i].name);
 
-		// Create a partition probe.
-		blkid_probe pr = blkid_new_probe_from_filename(partpath);
-		if (!pr) {
-			fprintf(stderr, "Failed to create a blkid probe for %s. Run the "
-					"program again as root to get more information on this "
-					"partition..\n", partpath);
-			return false;
-		}
-
 		// Initialize the parameter strings.
 		sd->partitions.list[i].uuid[0] = '\0';
 		sd->partitions.list[i].label[0] = '\0';
 		sd->partitions.list[i].type[0] = '\0';
+
+		// Create a partition probe.
+		blkid_probe pr = blkid_new_probe_from_filename(partpath);
+		if (!pr) {
+			fprintf(stderr, "Failed to create a blkid probe for %s.\n", partpath);
+			return false;
+		}
 
 		// Probe partition information.
 		blkid_do_probe(pr);
