@@ -18,12 +18,6 @@
 #define PARTITION_TYPE_MAX_LEN 32
 #define DEVICE_PATH_MAX_LEN    PARTITION_NAME_MAX_LEN * 2
 
-// Parameter constants.
-#define PARAM_NAME  0
-#define PARAM_TYPE  1
-#define PARAM_UUID  2
-#define PARAM_LABEL 3
-
 // Device partition structure.
 typedef struct {
 	char   name[PARTITION_NAME_MAX_LEN];
@@ -68,8 +62,6 @@ void device_list_push(stdev_container *list, stdev_t sd);
 void device_partition_push(partition_container *parts, const char *name);
 
 // Debugging.
-const char* device_get_partition_param(const partition_t *part,
-		const uint8_t param);
 void device_print_info(const stdev_t sd);
 
 #endif  //_DEVICE_H

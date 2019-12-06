@@ -63,10 +63,10 @@ void device_print_info(const stdev_t sd) {
 	}
 
 	for (int i = 0; i < sd.partitions.count; i++) {
-		printf("\t%d: %s\n", i, device_get_partition_param(&sd.partitions.list[i], PARAM_NAME));
-		printf("\t\tUUID:        %s\n", device_get_partition_param(&sd.partitions.list[i], PARAM_UUID));
-		printf("\t\tType:        %s\n", device_get_partition_param(&sd.partitions.list[i], PARAM_TYPE));
-		printf("\t\tLabel:       %s\n", device_get_partition_param(&sd.partitions.list[i], PARAM_LABEL));
+		printf("\t%d: %s\n", i, sd.partitions.list[i].name);
+		printf("\t\tUUID:        %s\n", sd.partitions.list[i].uuid);
+		printf("\t\tType:        %s\n", sd.partitions.list[i].type);
+		printf("\t\tLabel:       %s\n", sd.partitions.list[i].label);
 		printf("\t\tSectors:     %zu\n", sd.partitions.list[i].sectors);
 		printf("\t\tSize:        %zu bytes\n", sd.partitions.list[i].size);
 		printf("\t\tPermission:  %s\n", sd.partitions.list[i].ro ? "Read Only" : "Read and Write");
@@ -74,29 +74,5 @@ void device_print_info(const stdev_t sd) {
 	}
 
 	printf("\n");
-}
-
-/**
- * Gets a partition parameter value.
- *
- * @param  part  Partition structure.
- * @param  param Parameter name.
- * @return       Partition parameter value or "" if the parameter name is
- *               invalid.
- */
-const char* device_get_partition_param(const partition_t *part,
-		const uint8_t param) {
-	switch (param) {
-		case PARAM_NAME:
-			return part->name;
-		case PARAM_TYPE:
-			return part->type;
-		case PARAM_LABEL:
-			return part->label;
-		case PARAM_UUID:
-			return part->uuid;
-	}
-
-	return "";
 }
 
