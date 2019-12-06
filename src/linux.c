@@ -13,8 +13,12 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <blkid/blkid.h>
+#include <mntent.h>
 
+// Constants.
 #define SYSFS_BLOCKDEVS_PATH "/sys/block/"
+#define MOUNTPOINT_DEF_PATH "/etc/mtab"
+
 
 // Private methods.
 bool ignore_dir_entry(const struct dirent *dir);
@@ -22,6 +26,7 @@ bool freadnum(const char *fpath, size_t *num);
 bool get_device_size(stdev_t *sd);
 bool get_device_permission(stdev_t *sd);
 bool get_partitions(stdev_t *sd);
+bool get_partitions_mountpoints(stdev_t *sd);
 bool sysfs_exists();
 bool sysfs_device_info(stdev_t *sd);
 bool get_partitions_size(stdev_t *sd);
@@ -34,9 +39,10 @@ bool sysfs_device_list(stdev_container *devlist);
  * Populates a storage device container.
  *
  * @param  container Storage device structure container.
+ * @param  useblkid  Use blkid for probing? (requires root)
  * @return           TRUE if everything went fine.
  */
-bool linux_populate_devices(stdev_container *container) {
+bool linux_populate_devices(stdev_container *container, const bool useblkid) {
 	// Check with device discovery system we are going to use.
 	if (sysfs_exists()) {
 		// Use sysfs.
@@ -48,10 +54,12 @@ bool linux_populate_devices(stdev_container *container) {
 	}
 
 	// Use blkid to get more information for our devices.
-	/*for (int i = 0; i < container->count; i++) {
-		if (!blkid_info(&container->list[i]))
-			return false;
-	}*/
+	if (useblkid) {
+		for (int i = 0; i < container->count; i++) {
+			if (!blkid_info(&container->list[i]))
+				return false;
+		}
+	}
 
 	return true;
 }
@@ -110,7 +118,7 @@ bool sysfs_device_list(stdev_container *devlist) {
 		get_partitions(&sd);
 		get_partitions_size(&sd);
 		get_partitions_permission(&sd);
-		blkid_info(&sd);
+		get_partitions_mountpoints(&sd);
 
 		// Add the storage device to the list.
 		device_list_push(devlist, sd);
@@ -292,6 +300,46 @@ bool get_partitions_permission(stdev_t *sd) {
 }
 
 /**
+ * Gets the mount points for partitions.
+ *
+ * @param  sd Storage device structure to be populated with information.
+ * @return    TRUE if the parsing was successful.
+ */
+bool get_partitions_mountpoints(stdev_t *sd) {
+	FILE *fp;
+	struct mntent *fs;
+
+	// Open the mount point file.
+	fp = setmntent(MOUNTPOINT_DEF_PATH, "r");
+	if (fp == NULL) {
+		fprintf(stderr, "Failed to read the %s file.\n", MOUNTPOINT_DEF_PATH);
+		return false;
+	}
+
+	// Loop through the mount points in the system.
+	while ((fs = getmntent(fp)) != NULL) {
+		// Check if it's a real device and check for a match with a known partition..
+		if (fs->mnt_fsname[0] == '/') {
+			for (uint8_t i = 0; i < sd->partitions.count; i++) {
+				if (strcmp(fs->mnt_fsname, sd->partitions.list[i].path) == 0) {
+					// Store the mount point.
+					strncpy(sd->partitions.list[i].mntpoint, fs->mnt_dir,
+							DEVICE_PATH_MAX_LEN);
+
+					// Store the filesystem type.
+					strncpy(sd->partitions.list[i].type, fs->mnt_type,
+							PARTITION_TYPE_MAX_LEN);
+				}
+			}
+		}
+	}
+
+	// Clean up.
+	endmntent(fp);
+	return true;
+}
+
+/**
  * Gets a device information using blkid.
  *
  * @param  sd Storage device structure.
@@ -318,6 +366,8 @@ bool blkid_info(stdev_t *sd) {
 		blkid_probe pr = blkid_new_probe_from_filename(partpath);
 		if (!pr) {
 			fprintf(stderr, "Failed to create a blkid probe for %s.\n", partpath);
+			printf("Run this program as root or use the -n option to not use "
+					"blkid and miss some information about the partition.\n");
 			return false;
 		}
 

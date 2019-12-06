@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include "device.h"
 
-bool linux_populate_devices(stdev_container *container);
+bool linux_populate_devices(stdev_container *container, const bool useblkid);
 
 #endif  //_LINUX_H
 

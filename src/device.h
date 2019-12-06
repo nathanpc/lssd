@@ -27,9 +27,11 @@
 // Device partition structure.
 typedef struct {
 	char   name[PARTITION_NAME_MAX_LEN];
+	char   path[DEVICE_PATH_MAX_LEN];
 	char   uuid[PARTITION_NAME_MAX_LEN];
 	char   label[PARTITION_NAME_MAX_LEN];
 	char   type[PARTITION_TYPE_MAX_LEN];
+	char   mntpoint[DEVICE_PATH_MAX_LEN];
 	size_t sectors;
 	size_t size;
 	bool   ro;

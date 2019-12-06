@@ -30,6 +30,8 @@ void device_list_push(stdev_container *list, stdev_t sd) {
 void device_partition_push(partition_container *parts, const char *name) {
 	parts->list = realloc(parts->list, sizeof(partition_t) * (parts->count + 1));
 	strncpy(parts->list[parts->count++].name, name, PARTITION_NAME_MAX_LEN);
+	snprintf(parts->list[parts->count - 1].path, DEVICE_PATH_MAX_LEN, "/dev/%s",
+			parts->list[parts->count - 1].name);
 }
 
 /**
@@ -68,6 +70,7 @@ void device_print_info(const stdev_t sd) {
 		printf("\t\tSectors:     %zu\n", sd.partitions.list[i].sectors);
 		printf("\t\tSize:        %zu bytes\n", sd.partitions.list[i].size);
 		printf("\t\tPermission:  %s\n", sd.partitions.list[i].ro ? "Read Only" : "Read and Write");
+		printf("\t\tMount Point: %s\n", sd.partitions.list[i].mntpoint);
 	}
 
 	printf("\n");

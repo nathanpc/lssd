@@ -20,7 +20,7 @@ stdev_container stdevs;
  * @return      Exit code.
  */
 int main(int argc, char **argv) {
-	if (!linux_populate_devices(&stdevs))
+	if (!linux_populate_devices(&stdevs, false))
 		return EXIT_FAILURE;
 
 #ifdef DEBUG
