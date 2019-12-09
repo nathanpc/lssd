@@ -8,7 +8,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <getopt.h>
+
+#ifdef __linux__
 #include "linux.h"
+#elif __NetBSD__
+#include "netbsd.h"
+#endif
 
 // Prototypes.
 void usage();
@@ -54,7 +59,7 @@ int main(int argc, char **argv) {
 	}
 
 	// Populate the device list.
-	if (!linux_populate_devices(&stdevs, useblkid))
+	if (!populate_devices(&stdevs, useblkid))
 		return EXIT_FAILURE;
 
 	// Print information for all the devices available.
