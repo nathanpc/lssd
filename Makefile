@@ -34,6 +34,11 @@ debug: CFLAGS += -g3 -DDEBUG
 debug: clean $(TARGET)
 	$(GDB) $(TARGET)
 
+memcheck: CFLAGS += -g3 -DDEBUG -DMEMCHECK
+memcheck: clean $(TARGET)
+	valgrind --tool=memcheck --leak-check=yes --show-leak-kinds=all --track-origins=yes --log-file=valgrind.log ./$(TARGET)
+	cat valgrind.log
+
 clean:
 	$(RM) -r $(BUILDDIR)
 	$(RM) valgrind.log

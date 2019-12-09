@@ -2,6 +2,9 @@
 *.o
 lssd
 
+# Debugging artifacts.
+valgrind*
+
 # Misc.
 .DS_Store
 

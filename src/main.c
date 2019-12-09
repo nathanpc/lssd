@@ -23,10 +23,17 @@ int main(int argc, char **argv) {
 	if (!linux_populate_devices(&stdevs, true))
 		return EXIT_FAILURE;
 
-	// Print debug information for all the devices available.
+	// Print information for all the devices available.
 	for (uint8_t i = 0; i < stdevs.count; i++) {
 		device_print_info(stdevs.list[i], true);
 	}
+	
+	// Clean up.
+	for (uint8_t i = 0; i < stdevs.count; i++) {
+		device_free(&stdevs.list[i]);
+	}
+	stdevs.list = NULL;
+	stdevs.count = 0;
 
 	return EXIT_SUCCESS;
 }

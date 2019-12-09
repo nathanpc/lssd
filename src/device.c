@@ -32,6 +32,29 @@ void device_partition_push(partition_container *parts, const char *name) {
 	strncpy(parts->list[parts->count++].name, name, PARTITION_NAME_MAX_LEN);
 	snprintf(parts->list[parts->count - 1].path, DEVICE_PATH_MAX_LEN, "/dev/%s",
 			parts->list[parts->count - 1].name);
+	parts->list[parts->count - 1].mntpoint[0] = '\0';
+}
+
+/**
+ * Frees the whole storage device structure.
+ *
+ * @param sd Storage device structure to be freed.
+ */
+void device_free(stdev_t *sd) {
+	device_partitions_free(&sd->partitions);
+	free(sd);
+
+	sd = NULL;
+}
+
+/**
+ * Frees the partition list from a device structure.
+ *
+ * @param parts Partition container to be freed.
+ */
+void device_partitions_free(partition_container *parts) {
+	free(parts->list);
+	parts->count = 0;
 }
 
 /**

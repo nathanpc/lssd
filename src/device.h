@@ -64,5 +64,9 @@ void device_partition_push(partition_container *parts, const char *name);
 // Showing off.
 void device_print_info(const stdev_t sd, const bool pretty);
 
+// Clean up.
+void device_partitions_free(partition_container *parts);
+void device_free(stdev_t *sd);
+
 #endif  //_DEVICE_H
 
