@@ -20,15 +20,13 @@ stdev_container stdevs;
  * @return      Exit code.
  */
 int main(int argc, char **argv) {
-	if (!linux_populate_devices(&stdevs, false))
+	if (!linux_populate_devices(&stdevs, true))
 		return EXIT_FAILURE;
 
-#ifdef DEBUG
 	// Print debug information for all the devices available.
 	for (uint8_t i = 0; i < stdevs.count; i++) {
-		device_print_info(stdevs.list[i]);
+		device_print_info(stdevs.list[i], true);
 	}
-#endif
 
 	return EXIT_SUCCESS;
 }

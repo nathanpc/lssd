@@ -61,8 +61,8 @@ bool device_exists(const char *devpath);
 void device_list_push(stdev_container *list, stdev_t sd);
 void device_partition_push(partition_container *parts, const char *name);
 
-// Debugging.
-void device_print_info(const stdev_t sd);
+// Showing off.
+void device_print_info(const stdev_t sd, const bool pretty);
 
 #endif  //_DEVICE_H
 
