@@ -365,9 +365,10 @@ bool blkid_info(stdev_t *sd) {
 		// Create a partition probe.
 		blkid_probe pr = blkid_new_probe_from_filename(partpath);
 		if (!pr) {
-			fprintf(stderr, "Failed to create a blkid probe for %s.\n", partpath);
-			printf("Run this program as root or use the -n option to not use "
-					"blkid and miss some information about the partition.\n");
+			fprintf(stderr, "Failed to create a blkid probe for %s. "
+					"Maybe run this program as root.\n", partpath);
+			printf("To suppress the error above at the cost of a bit less "
+					"information, just use the --no-blkid flag.\n");
 			return false;
 		}
 
