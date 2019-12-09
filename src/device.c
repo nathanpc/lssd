@@ -74,6 +74,7 @@ bool device_exists(const char *devpath) {
  * @param pretty FALSE will print everything we have on the device.
  */
 void device_print_info(const stdev_t sd, const bool pretty) {
+	// Print device information.
 	if (pretty) {
 		printf("%s (%s) %zu bytes\n", sd.name, sd.ro ? "R" : "R/W", sd.size);
 	} else {
@@ -84,6 +85,7 @@ void device_print_info(const stdev_t sd, const bool pretty) {
 		printf("Permission:\t%s\n", sd.ro ? "Read Only" : "Read and Write");
 	}
 
+	// Print partition header.
 	if (sd.partitions.count > 0) {
 		if (!pretty)
 			printf("Partitions (%d):\n", sd.partitions.count);
@@ -91,6 +93,7 @@ void device_print_info(const stdev_t sd, const bool pretty) {
 		printf("\tNo partitions available!\n");
 	}
 
+	// Loop through the partitions and print their information.
 	for (int i = 0; i < sd.partitions.count; i++) {
 		if (pretty) {
 			// Print "tree" thingy.
@@ -108,10 +111,17 @@ void device_print_info(const stdev_t sd, const bool pretty) {
 
 			// Print label.
 			if (sd.partitions.list[i].label[0] != '\0') {
+				printf("\t");
+
+				// If it's not the last partition continue the root branch.
+				if (i < (sd.partitions.count - 1)) {
+					printf("\u2502");
+				}
+
 				if (sd.partitions.list[i].mntpoint[0] != '\0') {
-					printf("\t\t\u251C ");
+					printf("\t\u251C ");
 				} else {
-					printf("\t\t\u2514 ");
+					printf("\t\u2514 ");
 				}
 
 				printf("Label: %s\n", sd.partitions.list[i].label);
@@ -119,11 +129,18 @@ void device_print_info(const stdev_t sd, const bool pretty) {
 
 			// Print mount point.
 			if (sd.partitions.list[i].mntpoint[0] != '\0') {
+				printf("\t");
+				
+				// If it's not the last partition continue the root branch.
+				if (i < (sd.partitions.count - 1)) {
+					printf("\u2502");
+				}
+
 				// Are we the last item or there's the UUID to come?
 				if (sd.partitions.list[i].uuid[0] != '\0') {
-					printf("\t\t\u251C ");
+					printf("\t\u251C ");
 				} else {
-					printf("\t\t\u2514 ");
+					printf("\t\u2514 ");
 				}
 
 				printf("Mount Point: %s\n", sd.partitions.list[i].mntpoint);
