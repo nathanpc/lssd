@@ -28,6 +28,27 @@ sda (R/W) 120034123776 bytes
 # 
 ```
 
+## Compiling
+
+### Linux
+
+Under Linux everything is pretty straight-forward, just run `make` and when it's
+finished make sure the program works.
+
+    $ make
+	$ sudo ./build/bin/lssd
+
+### *BSD
+
+On BSD-based systems you'll first need to install
+[GNU Make](https://www.gnu.org/software/make/) from your distribution's package
+repository, then do the same as if it were a Linux environment, except `make` is
+now `gmake`.
+
+    # pkg_add -v gmake
+	$ gmake
+	$ sudo ./build/bin/lssd
+
 ## License
 
 This project is licensed under the **MIT License**.
