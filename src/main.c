@@ -7,7 +7,11 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <getopt.h>
 #include "linux.h"
+
+// Prototypes.
+void usage();
 
 // Storage device container.
 stdev_container stdevs;
@@ -20,17 +24,57 @@ stdev_container stdevs;
  * @return      Exit code.
  */
 int main(int argc, char **argv) {
-	if (!linux_populate_devices(&stdevs, true))
+	int option_idx = 0;
+	bool pretty = true;
+	bool useblkid = true;
+
+	// Set the long options for getopt.
+	static struct option loptions[] = {
+		{ "ugly", no_argument, NULL, 'u' },
+		{ "no-blkid", no_argument, NULL, 'k' },
+		{ "help", no_argument, NULL, 'h' }
+	};
+
+	// Loop through flags.
+	while ((option_idx = getopt_long(argc, argv, "ukh", loptions, NULL)) != -1) {
+		switch (option_idx) {
+			case 'u':
+				pretty = false;
+				break;
+			case 'k':
+				useblkid = false;
+				break;
+			case 'h':
+				usage();
+				return EXIT_SUCCESS;
+			default:
+				usage();
+				return EXIT_FAILURE;
+		}
+	}
+
+	// Populate the device list.
+	if (!linux_populate_devices(&stdevs, useblkid))
 		return EXIT_FAILURE;
 
 	// Print information for all the devices available.
 	for (uint8_t i = 0; i < stdevs.count; i++) {
-		device_print_info(stdevs.list[i], true);
+		device_print_info(stdevs.list[i], pretty);
 	}
 	
-	// Clean up.
+	// Clean up and exit.
 	device_container_free(&stdevs);
-
 	return EXIT_SUCCESS;
+}
+
+/**
+ * Prints the usage text.
+ */
+void usage() {
+	printf("Usage: lssd [-ukh]\n\n");
+	printf("Flags:\n");
+	printf("    -u or --ugly    \tPrint like fdisk instead of the tree layout.\n");
+	printf("    -k or --no-blkid\tDon't use blkid to get information. (no root)\n");
+	printf("    -h or --help    \tShows this message.\n");
 }
 
