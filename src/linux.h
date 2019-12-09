@@ -1,6 +1,6 @@
 /**
  * linux.h
- * Deals with the Linux devices.
+ * Deals with Linux devices.
  *
  * @author Nathan Campos <hi@nathancampos.me>
  */
@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include "device.h"
 
-bool linux_populate_devices(stdev_container *container, const bool useblkid);
+bool populate_devices(stdev_container *container, const bool useblkid);
 
 #endif  //_LINUX_H
 

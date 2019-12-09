@@ -1,6 +1,6 @@
 /**
- * linux.h
- * Deals with the Linux devices.
+ * linux.c
+ * Deals with Linux devices.
  *
  * @author Nathan Campos <hi@nathancampos.me>
  */
@@ -42,7 +42,7 @@ bool sysfs_device_list(stdev_container *devlist);
  * @param  useblkid  Use blkid for probing? (requires root)
  * @return           TRUE if everything went fine.
  */
-bool linux_populate_devices(stdev_container *container, const bool useblkid) {
+bool populate_devices(stdev_container *container, const bool useblkid) {
 	// Check with device discovery system we are going to use.
 	if (sysfs_exists()) {
 		// Use sysfs.
