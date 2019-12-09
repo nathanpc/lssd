@@ -30,10 +30,14 @@ sda (R/W) 120034123776 bytes
 
 ## Compiling
 
+### Requirements
+
+  - [libblkid](https://linux.die.net/man/3/libblkid) (Linux)
+
 ### Linux
 
-Under Linux everything is pretty straight-forward, just run `make` and when it's
-finished make sure the program works.
+First make sure you have the [blkid library](https://linux.die.net/man/3/libblkid)
+installed, then just run `make` and when it's finished make sure the program works.
 
     $ make
 	$ sudo ./build/bin/lssd
