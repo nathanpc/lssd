@@ -36,25 +36,17 @@ void device_partition_push(partition_container *parts, const char *name) {
 }
 
 /**
- * Frees the whole storage device structure.
+ * Frees the whole storage device container.
  *
- * @param sd Storage device structure to be freed.
+ * @param container Storage device container to be freed.
  */
-void device_free(stdev_t *sd) {
-	device_partitions_free(&sd->partitions);
-	free(sd);
+void device_container_free(stdev_container *container) {
+	for (uint8_t i = 0; i < container->count; i++) {
+		free(container->list[i].partitions.list);
+	}
 
-	sd = NULL;
-}
-
-/**
- * Frees the partition list from a device structure.
- *
- * @param parts Partition container to be freed.
- */
-void device_partitions_free(partition_container *parts) {
-	free(parts->list);
-	parts->count = 0;
+	free(container->list);
+	container->count = 0;
 }
 
 /**

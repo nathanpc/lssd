@@ -29,11 +29,7 @@ int main(int argc, char **argv) {
 	}
 	
 	// Clean up.
-	for (uint8_t i = 0; i < stdevs.count; i++) {
-		device_free(&stdevs.list[i]);
-	}
-	stdevs.list = NULL;
-	stdevs.count = 0;
+	device_container_free(&stdevs);
 
 	return EXIT_SUCCESS;
 }
