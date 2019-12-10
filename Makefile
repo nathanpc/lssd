@@ -1,5 +1,5 @@
 PROJECT = lssd
-PLATFORM = $$(uname -s)
+PLATFORM := $(shell uname -s)
 
 CC = gcc
 RM = rm -f
@@ -11,11 +11,11 @@ INCDIR = include
 BUILDDIR := build
 TARGET = $(BUILDDIR)/bin/$(PROJECT)
 
-SRCEXT := c
-SOURCES := $(SRCDIR)/main.c $(SRCDIR)/device.c
 ifeq ($(PLATFORM), Linux)
-	SOURCES += $(SRCDIR)/linux.c
+	SOURCES := $(SRCDIR)/linux.c
 endif
+SRCEXT := c
+SOURCES += $(SRCDIR)/main.c $(SRCDIR)/device.c
 OBJECTS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/obj/%,$(SOURCES:.$(SRCEXT)=.o))
 
 CFLAGS = -Wall -I $(INCDIR)
