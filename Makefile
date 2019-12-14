@@ -13,6 +13,8 @@ TARGET = $(BUILDDIR)/bin/$(PROJECT)
 
 ifeq ($(PLATFORM), Linux)
 	SOURCES := $(SRCDIR)/linux.c
+else ifeq ($(PLATFORM), NetBSD)
+	SOURCES := $(SRCDIR)/netbsd.c
 endif
 SRCEXT := c
 SOURCES += $(SRCDIR)/main.c $(SRCDIR)/device.c

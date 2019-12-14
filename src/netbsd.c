@@ -12,7 +12,8 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <mntent.h>
+#include <sys/param.h>
+#include <sys/sysctl.h>
 
 // Constants.
 #define SYSFS_BLOCKDEVS_PATH "/sys/block/"
@@ -20,19 +21,7 @@
 
 
 // Private methods.
-bool ignore_dir_entry(const struct dirent *dir);
-bool freadnum(const char *fpath, size_t *num);
-bool get_device_size(stdev_t *sd);
-bool get_device_permission(stdev_t *sd);
-bool get_partitions(stdev_t *sd);
-bool get_partitions_mountpoints(stdev_t *sd);
-bool sysfs_exists();
-bool sysfs_device_info(stdev_t *sd);
-bool get_partitions_size(stdev_t *sd);
-bool get_partitions_permission(stdev_t *sd);
-bool blkid_info(stdev_t *sd);
-bool sysfs_device_list(stdev_container *devlist);
-
+bool sysctl_device_list(stdev_container *devlist);
 
 /**
  * Populates a storage device container.
@@ -42,34 +31,11 @@ bool sysfs_device_list(stdev_container *devlist);
  * @return           TRUE if everything went fine.
  */
 bool populate_devices(stdev_container *container, const bool useblkid) {
-	// Check with device discovery system we are going to use.
-	if (sysfs_exists()) {
-		// Use sysfs.
-		if (!sysfs_device_list(container))
-			return false;
-	} else {
-		fprintf(stderr, "Cannot determine a device discovery system to use.\n");
+	// Get a device list using sysctl.
+	if (!sysctl_device_list(container))
 		return false;
-	}
-
-	// Use blkid to get more information for our devices.
-	if (useblkid) {
-		for (int i = 0; i < container->count; i++) {
-			if (!blkid_info(&container->list[i]))
-				return false;
-		}
-	}
 
 	return true;
-}
-
-/**
- * Checks if the sysfs block device folders exists.
- *
- * @return TRUE if there are block device folders.
- */
-bool sysfs_exists() {
-	return access(SYSFS_BLOCKDEVS_PATH, F_OK) != -1;
 }
 
 /**
@@ -78,57 +44,59 @@ bool sysfs_exists() {
  * @param  devlist Array of block devices to be populated.
  * @return         TRUE if the operation was successful.
  */
-bool sysfs_device_list(stdev_container *devlist) {
-	DIR *dh;
-	struct dirent *dir;
-	
+bool sysctl_device_list(stdev_container *devlist) {
+	int mib[2];
+	size_t len;
+
 	// Initialize the container.
 	devlist->count = 0;
 
-	// Open the block device folder.
-	dh = opendir(SYSFS_BLOCKDEVS_PATH);
-	if (dh == NULL) {
-		fprintf(stderr, "Couldn't open %s to list block devices.\n",
-				SYSFS_BLOCKDEVS_PATH);
-		return false;
-	}
+	// Get block devices.
+	mib[0] = CTL_HW;
+	mib[1] = HW_DISKNAMES;
+	char *desc = (char*)asysctl(mib, 2, &len);
 
-	// Get the directory listing.
-	while ((dir = readdir(dh)) != NULL) {
-		// Filter out anything that isn't a block device.
-		if (ignore_dir_entry(dir)) {
-			continue;
+	// Push devices to the container.
+	char sd_name[PARTITION_NAME_MAX_LEN];
+	uint8_t ci = 0;
+	for (size_t i = 0; i < (len + 1); i++) {
+		// Put character into the name string.
+		sd_name[ci] = desc[i];
+
+		// Device name ended.
+		if ((desc[i] == ' ') || (desc[i] == '\0')) {
+			// Terminate the string and reset the character counter.
+			sd_name[ci] = '\0';
+			ci = 0;
+
+			// Get device information.
+			stdev_t sd;
+			strncpy(sd.name, sd_name, PARTITION_NAME_MAX_LEN);
+			//sysfs_device_info(&sd);
+
+			/*
+			// Get partitions and information on them.
+			sd.partitions.list = malloc(sizeof(partition_t));
+			get_partitions(&sd);
+			get_partitions_size(&sd);
+			get_partitions_permission(&sd);
+			get_partitions_mountpoints(&sd);
+			*/
+
+			// Add the storage device to the list.
+			device_list_push(devlist, sd);
+		} else {
+			// Increment the character counter for the next character.
+			ci++;
 		}
-
-		// Filter out the special "boot" devices.
-		if (strstr(dir->d_name, "boot") != NULL) {
-			continue;
-		}
-
-		// Get device information.
-		stdev_t sd;
-		strncpy(sd.name, dir->d_name, PARTITION_NAME_MAX_LEN);
-		sysfs_device_info(&sd);
-		if (sd.size == 0)
-			continue;
-		
-		// Get partitions and information on them.
-		sd.partitions.list = malloc(sizeof(partition_t));
-		get_partitions(&sd);
-		get_partitions_size(&sd);
-		get_partitions_permission(&sd);
-		get_partitions_mountpoints(&sd);
-
-		// Add the storage device to the list.
-		device_list_push(devlist, sd);
 	}
 
 	// Clean up.
-	closedir(dh);
-	dh = NULL;
+	free(desc);
 	return true;
 }
 
+#ifdef NOSOURCE
 /**
  * Gets information about a given block device.
  *
@@ -429,4 +397,4 @@ bool ignore_dir_entry(const struct dirent *dir) {
 
 	return false;
 }
-
+#endif
