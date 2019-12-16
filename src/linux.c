@@ -14,6 +14,7 @@
 #include <sys/stat.h>
 #include <blkid/blkid.h>
 #include <mntent.h>
+#include "utils.h"
 
 // Constants.
 #define SYSFS_BLOCKDEVS_PATH "/sys/block/"
@@ -22,7 +23,6 @@
 
 // Private methods.
 bool ignore_dir_entry(const struct dirent *dir);
-bool freadnum(const char *fpath, size_t *num);
 bool get_device_size(stdev_t *sd);
 bool get_device_permission(stdev_t *sd);
 bool get_partitions(stdev_t *sd);
@@ -82,7 +82,7 @@ bool sysfs_exists() {
 bool sysfs_device_list(stdev_container *devlist) {
 	DIR *dh;
 	struct dirent *dir;
-	
+
 	// Initialize the container.
 	devlist->count = 0;
 
@@ -112,7 +112,7 @@ bool sysfs_device_list(stdev_container *devlist) {
 		sysfs_device_info(&sd);
 		if (sd.size == 0)
 			continue;
-		
+
 		// Get partitions and information on them.
 		sd.partitions.list = malloc(sizeof(partition_t));
 		get_partitions(&sd);
@@ -258,13 +258,13 @@ bool get_partitions_size(stdev_t *sd) {
 		// Get the number of bytes per sector.
 		snprintf(attrpath, PATH_MAX, "%s/%s/size", sd->path,
 				sd->partitions.list[i].name);
-		
+
 		if (!freadnum(attrpath, &sd->partitions.list[i].sectors)) {
 			fprintf(stderr, "Failed to read the sector size for %s.\n",
 					sd->partitions.list[i].name);
 			return false;
 		}
-		
+
 		// Calculate the size.
 		sd->partitions.list[i].size = sd->partitions.list[i].sectors * sd->sector_size;
 	}
@@ -286,7 +286,7 @@ bool get_partitions_permission(stdev_t *sd) {
 		// Get the permission.
 		snprintf(attrpath, PATH_MAX, "%s/%s/ro", sd->path,
 				sd->partitions.list[i].name);
-		
+
 		if (!freadnum(attrpath, &perm)) {
 			fprintf(stderr, "Failed to read %s permissions.\n",
 					sd->partitions.list[i].name);
@@ -380,39 +380,12 @@ bool blkid_info(stdev_t *sd) {
 			strncpy(sd->partitions.list[i].label, label, PARTITION_NAME_MAX_LEN);
 		if (!blkid_probe_lookup_value(pr, "TYPE", &type, NULL))
 			strncpy(sd->partitions.list[i].type, type, PARTITION_TYPE_MAX_LEN);
-		
+
 		// Clean up.
 		blkid_free_probe(pr);
 	}
 
 	return true;
-}
-
-/**
- * Reads a number from a file that only contains it.
- *
- * @param  fpath File path.
- * @param  num   Pointer to the number found in the file.
- * @return       TRUE if the parsing was successful.
- */
-bool freadnum(const char *fpath, size_t *num) {
-	FILE *fh;
-	bool success = false;
-
-	// Open the file.
-	fh = fopen(fpath, "r");
-	if (fh == NULL) {
-		fprintf(stderr, "Couldn't open %s.\n", fpath);
-		return false;
-	}
-
-	// Read the number from the file.
-	success = (fscanf(fh, "%zu[^\n]", num) == 1);
-
-	// Clean up.
-	fclose(fh);
-	fh = NULL;
-	return success;
 }
 
 /**
@@ -430,4 +403,3 @@ bool ignore_dir_entry(const struct dirent *dir) {
 
 	return false;
 }
-

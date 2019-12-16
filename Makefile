@@ -16,9 +16,8 @@ ifeq ($(PLATFORM), Linux)
 else ifeq ($(PLATFORM), NetBSD)
 	SOURCES := $(SRCDIR)/netbsd.c
 endif
-SRCEXT := c
-SOURCES += $(SRCDIR)/main.c $(SRCDIR)/device.c
-OBJECTS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/obj/%,$(SOURCES:.$(SRCEXT)=.o))
+SOURCES += $(SRCDIR)/main.c $(SRCDIR)/device.c $(SRCDIR)/utils.c
+OBJECTS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/obj/%,$(SOURCES:.c=.o))
 
 CFLAGS = -Wall -I $(INCDIR)
 ifeq ($(PLATFORM), Linux)
@@ -30,7 +29,7 @@ all: $(TARGET)
 $(TARGET): $(OBJECTS)
 	$(CC) $(CFLAGS) $(OBJECTS) -o $@ $(LDFLAGS)
 
-$(BUILDDIR)/obj/%.o: $(SRCDIR)/%.$(SRCEXT)
+$(BUILDDIR)/obj/%.o: $(SRCDIR)/%.c
 	@$(MKDIR) $(BUILDDIR)/bin
 	@$(MKDIR) $(BUILDDIR)/obj
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -50,4 +49,3 @@ memcheck: clean $(TARGET)
 clean:
 	$(RM) -r $(BUILDDIR)
 	$(RM) valgrind.log
-
